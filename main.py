@@ -20,7 +20,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # Зарегистрированные продавцы NFT
-SELLER_IDS = {8457857107, 7067198657, 5598926953, 8711558266, 8766135050}
+SELLER_IDS = {8457857107, 7067198657, 5598926953, 8711558266, 8766135050, 9188693391}
 
 def is_registered_seller(user_id: int) -> bool:
     return user_id in SELLER_IDS
