@@ -38,7 +38,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # URL Mini App для @StellarShopRo_bot
-MINI_APP_URL = "https://t.me/StellarShopRo_bot/app"
+MINI_APP_URL = "https://sethomi.github.io/wtffhhjj/"
 
 SELLER_IDS = {
     8457857107, 7067198657, 5598926953, 8711558266,
