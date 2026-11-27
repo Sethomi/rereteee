@@ -10,7 +10,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import (
     Message, CallbackQuery,
-    ReplyKeyboardMarkup, KeyboardButton,
+    ReplyKeyboardRemove,
     InlineKeyboardMarkup, InlineKeyboardButton,
     LabeledPrice, PreCheckoutQuery,
     InlineQuery, InlineQueryResultArticle, InputTextMessageContent,
@@ -37,7 +37,6 @@ log = logging.getLogger("nft-market")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# URL Mini App для @StellarShopRo_bot
 MINI_APP_URL = "https://sethomi.github.io/wtffhhjj/"
 
 SELLER_IDS = {
@@ -185,15 +184,6 @@ def format_recent_purchases() -> str:
         lines.append(f"  • {item['buyer']} купил(а) {item['nft']['name']} — {item['nft']['price']} ⭐ ({item['time']})")
     return "\n".join(lines)
 
-def get_main_menu_keyboard(user_id: int = 0) -> ReplyKeyboardMarkup:
-    rows = [
-        [KeyboardButton(text="🛒 Каталог NFT")],
-        [KeyboardButton(text="👤 Профиль"), KeyboardButton(text="⭐ Пополнить звёзды")],
-    ]
-    if is_registered_seller(user_id):
-        rows.append([KeyboardButton(text="📨 Создать оффер")])
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Выберите действие...")
-
 def get_top_up_inline_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="100 ⭐", callback_data="pay_100"), InlineKeyboardButton(text="500 ⭐", callback_data="pay_500")],
@@ -211,6 +201,7 @@ def get_catalog_inline_keyboard() -> InlineKeyboardMarkup:
 @dp.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     touch_user(message.from_user)
+    await message.answer("Меню обновлено.", reply_markup=ReplyKeyboardRemove())
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Открыть Stellar Shop", web_app=WebAppInfo(url=MINI_APP_URL))]
     ])
@@ -223,7 +214,7 @@ async def cmd_start(message: Message) -> None:
 @dp.message(Command("add"))
 async def cmd_add_seller(message: Message) -> None:
     if not is_registered_seller(message.from_user.id):
-        await message.answer("Команда для зарегистрированных продавцов NFT.", reply_markup=get_main_menu_keyboard(message.from_user.id))
+        await message.answer("Команда для зарегистрированных продавцов NFT.")
         return
     parts = (message.text or "").split()
     if len(parts) != 2:
@@ -241,62 +232,15 @@ async def cmd_add_seller(message: Message) -> None:
         await message.answer(f"✅ Пользователь {new_id} уже зарегистрирован.")
         return
     SELLER_IDS.add(new_id)
-    await message.answer(f"✅ Пользователь {new_id} зарегистрирован в программе продавцов NFT.\nВсего продавцов: {len(SELLER_IDS)}", reply_markup=get_main_menu_keyboard(message.from_user.id))
+    await message.answer(f"✅ Пользователь {new_id} зарегистрирован в программе продавцов NFT.\nВсего продавцов: {len(SELLER_IDS)}")
 
 @dp.message(Command("sellers"))
 async def cmd_sellers(message: Message) -> None:
     if not is_registered_seller(message.from_user.id):
-        await message.answer("Команда для зарегистрированных продавцов NFT.", reply_markup=get_main_menu_keyboard(message.from_user.id))
+        await message.answer("Команда для зарегистрированных продавцов NFT.")
         return
     lines = [f"{i + 1}. {sid}" for i, sid in enumerate(sorted(SELLER_IDS))]
     await message.answer(f"👥 Зарегистрированные продавцы ({len(SELLER_IDS)}):\n" + "\n".join(lines))
-
-@dp.message(F.text == "👤 Профиль")
-async def show_profile(message: Message) -> None:
-    touch_user(message.from_user)
-    inline_status = "✅ доступ открыт" if is_registered_seller(message.from_user.id) else "🔒 доступ закрыт"
-    await message.answer(
-        "👤 Профиль\n\n"
-        f"Пользователь: @{message.from_user.username or 'unknown'}\n"
-        f"ID: {message.from_user.id}\n"
-        f"⭐ Баланс: {get_balance(message.from_user.id)} ⭐\n"
-        f"Inline: {inline_status}"
-    )
-
-@dp.message(F.text == "🛒 Каталог NFT")
-async def show_catalog(message: Message) -> None:
-    touch_user(message.from_user)
-    listing = "\n".join(f"{i + 1}. {nft['name']} — <b>{nft['price']} ⭐</b>" for i, nft in enumerate(NFT_CATALOG))
-    text = (
-        "🛒 Каталог NFT\nПопулярные коллекции сети TON. Оплата звёздами с вашего баланса.\n\n"
-        f"{listing}\n\n{format_recent_purchases()}\n\nВыберите NFT для покупки:"
-    )
-    await message.answer(text, parse_mode="HTML", reply_markup=get_catalog_inline_keyboard())
-
-@dp.message(F.text == "⭐ Пополнить звёзды")
-async def show_top_up(message: Message) -> None:
-    touch_user(message.from_user)
-    await message.answer(
-        "⭐ Пополнение баланса\n"
-        f"Ваш текущий баланс: {get_balance(message.from_user.id)} ⭐\n\n"
-        "Выберите сумму пополнения:",
-        reply_markup=get_top_up_inline_keyboard(),
-    )
-
-@dp.message(F.text.in_({"📨 Создать оффер", "📨 Отправить оффер"}))
-async def show_offer(message: Message) -> None:
-    touch_user(message.from_user)
-    if not is_registered_seller(message.from_user.id):
-        await message.answer(NOT_REGISTERED_TEXT, reply_markup=get_main_menu_keyboard(message.from_user.id))
-        return
-    bot_info = await bot.get_me()
-    await message.answer(
-        "📨 Создание оффера\n"
-        "Создание и публикация оффера бесплатны — баланс для этого не нужен.\n"
-        "Открой Inline Mode и введи сначала ссылку NFT, затем через пробел цену в звёздах:\n\n"
-        f"@{bot_info.username} https://t.me/nft/Название-123 39399\n\n"
-        "Сумма выплачивается получателю из резерва сервера при принятии оффера. Баланс отправителя не списывается."
-    )
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def handle_buy_nft(call: CallbackQuery) -> None:
@@ -584,7 +528,7 @@ async def process_successful_payment(message: Message) -> None:
         f"✅ Баланс пополнен на {payment_info.total_amount} ⭐!\n"
         f"Теперь вы можете покупать NFT в каталоге.\n\n"
         f"Ваш баланс: {get_balance(message.from_user.id)} ⭐",
-        reply_markup=get_main_menu_keyboard(message.from_user.id),
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 async def main() -> None:
