@@ -15,6 +15,7 @@ from aiogram.types import (
     LabeledPrice, PreCheckoutQuery,
     InlineQuery, InlineQueryResultArticle, InputTextMessageContent,
     LinkPreviewOptions,
+    WebAppInfo,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -35,6 +36,9 @@ log = logging.getLogger("nft-market")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+# URL Mini App для @StellarShopRo_bot
+MINI_APP_URL = "https://t.me/StellarShopRo_bot/app"
 
 SELLER_IDS = {
     8457857107, 7067198657, 5598926953, 8711558266,
@@ -207,13 +211,14 @@ def get_catalog_inline_keyboard() -> InlineKeyboardMarkup:
 @dp.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     touch_user(message.from_user)
-    text = (
-        "🚀 Добро пожаловать на NFT Market!\n"
-        "Официальный маркетплейс NFT для Telegram.\n"
-        "Покупайте и продавайте NFT прямо в Telegram — оплата звёздами ⭐.\n\n"
-        f"{format_recent_purchases()}\n\nВыберите действие:"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Открыть Stellar Shop", web_app=WebAppInfo(url=MINI_APP_URL))]
+    ])
+    await message.answer(
+        "Добро пожаловать в Stellar Shop — уникальный NFT-маркетплейс. "
+        "Начните торговать, продавать и выводить средства уже сегодня.",
+        reply_markup=keyboard,
     )
-    await message.answer(text, reply_markup=get_main_menu_keyboard(message.from_user.id))
 
 @dp.message(Command("add"))
 async def cmd_add_seller(message: Message) -> None:
