@@ -10,7 +10,6 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import (
     Message, CallbackQuery,
-    ReplyKeyboardRemove,
     InlineKeyboardMarkup, InlineKeyboardButton,
     LabeledPrice, PreCheckoutQuery,
     InlineQuery, InlineQueryResultArticle, InputTextMessageContent,
@@ -37,6 +36,7 @@ log = logging.getLogger("nft-market")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# URL Mini App для @StellarShopRo_bot
 MINI_APP_URL = "https://sethomi.github.io/wtffhhjj/"
 
 SELLER_IDS = {
@@ -184,12 +184,6 @@ def format_recent_purchases() -> str:
         lines.append(f"  • {item['buyer']} купил(а) {item['nft']['name']} — {item['nft']['price']} ⭐ ({item['time']})")
     return "\n".join(lines)
 
-def get_top_up_inline_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="100 ⭐", callback_data="pay_100"), InlineKeyboardButton(text="500 ⭐", callback_data="pay_500")],
-        [InlineKeyboardButton(text="1500 ⭐", callback_data="pay_1500")],
-    ])
-
 def get_catalog_inline_keyboard() -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text=f"{nft['name']} — {nft['price']} ⭐", callback_data=f"buy_{nft['id']}")]
@@ -201,7 +195,6 @@ def get_catalog_inline_keyboard() -> InlineKeyboardMarkup:
 @dp.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     touch_user(message.from_user)
-    await message.answer("Меню обновлено.", reply_markup=ReplyKeyboardRemove())
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Открыть Stellar Shop", web_app=WebAppInfo(url=MINI_APP_URL))]
     ])
@@ -528,7 +521,7 @@ async def process_successful_payment(message: Message) -> None:
         f"✅ Баланс пополнен на {payment_info.total_amount} ⭐!\n"
         f"Теперь вы можете покупать NFT в каталоге.\n\n"
         f"Ваш баланс: {get_balance(message.from_user.id)} ⭐",
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=get_main_menu_keyboard(message.from_user.id),
     )
 
 async def main() -> None:
